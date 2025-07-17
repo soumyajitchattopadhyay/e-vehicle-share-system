@@ -1,0 +1,105 @@
+<!-- loginpage/templates/loginpage/signup.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #29343aee;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .signup-form {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            color: #333333;
+        }
+    </style>
+</head>
+<body>
+<div class="signup-form">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <h3 class="text-center mb-4">Sign Up</h3>
+    <form method="POST" action="{% url 'signup' %}">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="full_name">Full Name</label>
+            {{ form.full_name }}
+        </div>
+
+        <div class="form-group">
+            <label for="dob">Date of Birth</label>
+            {{ form.date_of_birth }}
+        </div>
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            {{ form.username }}
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            {{ form.email }}
+        </div>
+
+        <div class="form-group">
+            <label for="identity">Identity</label>
+            {{ form.identity }}
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            {{ form.password1 }}
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            {{ form.password2 }}
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+    </form>
+    {{form.errors}}
+    <div class="mt-4">
+        <div class="d-flex justify-content-center links">
+            Already have an account? <a href="{% url 'login' %}" class="ml-2">Login</a>
+        </div>
+    </div>
+</div>
+<script>
+    var form_fields = document.getElementsByTagName('input')
+    form_fields[1].placeholder='Full Name...';
+    form_fields[3].placeholder='Username...';
+    form_fields[4].placeholder='Email...'
+    form_fields[5].placeholder='Enter Password...'
+    form_fields[6].placeholder='Re-enter Password...'
+
+    for (var field in form_fields){
+        form_fields[field].className+='form-control'
+    }
+    
+</script>
+
+</body>
+</html>

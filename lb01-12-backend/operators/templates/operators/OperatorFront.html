@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ElVe: Combustion Free Travelling</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container py-3">
+  <header>
+    <div class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom">
+      <span class="fs-4 text-success">ElVe: Combustion Free Travelling</span>
+      <!-- Logout Button -->
+      <button class="btn btn-danger ms-auto" onclick="logout()">Logout</button>
+    </div>
+  </header>
+  <main>
+    <div class="row row-cols-1 row-cols-md-2 mb-3 text-center">
+      <div class="col">
+        <div class="list-group">
+          <button type="button" class="w-100 btn btn-lg btn-primary mt-3" onclick="showSearchForm()">Track</button>
+          <button type="button" class="w-100 btn btn-lg btn-primary mt-3" onclick="showChargeForm()">Charge</button>
+          <button type="button" class="w-100 btn btn-lg btn-primary mt-3" onclick="showRepairForm()">Repair</button>
+          <button type="button" class="w-100 btn btn-lg btn-primary mt-3" onclick="showMoveForm()">Move</button>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm">
+          <div class="card-body" id="vehicleDetails">
+            <!-- This is where we will display the vehicle details and forms -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle List Table -->
+    <div>
+      <h3 class="text-center">Vehicle List</h3>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Vehicle ID</th>
+            <th>Battery Level</th>
+            <th>Status</th>
+            <th>In Station</th>
+          </tr>
+        </thead>
+        <tbody id="vehicleList">
+          <!-- Dynamic content populated here by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Helper function to get CSRF token from cookies
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // Functions to display forms
+  function showSearchForm() {
+    document.getElementById('vehicleDetails').innerHTML = `
+      <form onsubmit="searchVehicle(event)">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" placeholder="Enter Vehicle ID" id="vehicleIdInput">
+          <button class="btn btn-outline-secondary" type="submit">Search</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function showChargeForm() {
+    document.getElementById('vehicleDetails').innerHTML = `
+      <form onsubmit="chargeVehicle(event)">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" placeholder="Enter Vehicle ID" id="chargeVehicleIdInput">
+          <button class="btn btn-outline-secondary" type="submit">Charge</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function chargeVehicle(event) {
+    event.preventDefault();
+    const vehicleId = document.getElementById('chargeVehicleIdInput').value;
+
+    // Display vehicle details with battery level starting at a simulated initial value
+    document.getElementById('vehicleDetails').innerHTML = `
+      <h3>Charging Vehicle ${vehicleId}</h3>
+      <p>Battery Level: <span id="batteryPercentage">0%</span></p>
+      <button class="btn btn-outline-secondary" onclick="startChargingVisualization('${vehicleId}')">Start Charging Visualization</button>
+    `;
+  }
+
+  let chargingInterval;  // Variable to hold the interval function for visualization
+
+  // Function to start the charging visualization
+  function startChargingVisualization(vehicleId) {
+    const batteryPercentageElement = document.getElementById('batteryPercentage');
+    let currentPercentage = parseInt(batteryPercentageElement.textContent.replace('%', ''));
+
+    // Clear any previous interval if it exists
+    clearInterval(chargingInterval);
+
+    // Start polling the backend and visualizing the charge
+    chargingInterval = setInterval(() => {
+      fetch(`/operators/track_vehicle/${vehicleId}/`)  // Replace with the correct endpoint
+        .then(response => response.json())
+        .then(data => {
+          currentPercentage = data.battery_level;  // Sync with the actual DB level
+          batteryPercentageElement.textContent = `${currentPercentage}%`;
+
+          if (currentPercentage >= 100) {
+            clearInterval(chargingInterval); // Stop polling once fully charged
+          }
+        })
+        .catch(error => console.error("Error updating charge level:", error));
+    }, 5000);  // Sync with your Celery task rate, e.g., every 5 seconds
+  }
+
+  function showRepairForm() {
+    document.getElementById('vehicleDetails').innerHTML = `
+      <form onsubmit="repairVehicle(event)">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" placeholder="Enter Vehicle ID" id="repairVehicleIdInput">
+          <button class="btn btn-outline-secondary" type="submit">Repair</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function showMoveForm() {
+    document.getElementById('vehicleDetails').innerHTML = `
+      <form onsubmit="moveVehicle(event)">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" placeholder="Enter Vehicle ID" id="moveVehicleIdInput">
+          <!-- Dropdown for station selection -->
+          <select class="form-select" id="stationSelect">
+            <option value="Charging Station A">Charging Station A</option>
+            <option value="Charging Station B">Charging Station B</option>
+            <option value="Charging Station C">Charging Station C</option>
+          </select>
+          <button class="btn btn-outline-secondary" type="submit">Move</button>
+        </div>
+      </form>
+    `;
+  }
+
+  // AJAX functions for each operation
+  function searchVehicle(event) {
+    event.preventDefault();
+    const vehicleId = document.getElementById('vehicleIdInput').value;
+
+    fetch(`/operators/track_vehicle/${vehicleId}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Vehicle not found');
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('vehicleDetails').innerHTML = `
+                <h3>Vehicle Details for ${data.vehicle_id}</h3>
+                <p>Type: ${data.vtype}</p>
+                <p>Status: ${data.status}</p>
+                <p>Location: ${data.location}</p>
+                <p>Battery Level: ${data.battery_level}%</p>
+                <p>Last Updated: ${data.last_updated}</p>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('vehicleDetails').innerHTML = `<p>Error: ${error.message}</p>`;
+        });
+  }
+  function fetchVehicleList() {
+    fetch('/operators/get_vehicles/')
+      .then(response => response.json())
+      .then(data => {
+        const vehicleList = document.getElementById('vehicleList');
+        vehicleList.innerHTML = ''; // Clear the list before appending new items
+        data.forEach((vehicle, index) => {
+          vehicleList.innerHTML += `
+            <tr id="vehicle-${vehicle.vehicle_id}">
+              <td>${index + 1}</td>
+              <td>${vehicle.vehicle_id}</td>
+              <td class="battery-level">${vehicle.battery_level}%</td>
+              <td class="status">${vehicle.status}</td>
+              <td>${vehicle.in_station ? 'Yes' : 'No'} ${vehicle.station_name ? `(${vehicle.station_name})` : ''}</td>
+            </tr>
+          `;
+        });
+      });
+  }
+
+  function monitorCharging(vehicleId) {
+    const interval = setInterval(() => {
+      fetch(`/operators/api/vehicle/${vehicleId}/status/`)
+        .then(response => response.json())
+        .then(data => {
+          const batteryLevel = data.battery_level;
+          const status = data.status;
+  
+          const vehicleRow = document.querySelector(`#vehicle-${vehicleId}`);
+          if (vehicleRow) {
+            vehicleRow.querySelector('.battery-level').innerText = `${batteryLevel}%`;
+            vehicleRow.querySelector('.status').innerText = status;
+          }
+  
+          if (batteryLevel >= 100) {
+            clearInterval(interval);
+            console.log(`Charging complete for Vehicle ID: ${vehicleId}`);
+          }
+        })
+        .catch(error => console.error("Error fetching charging status:", error));
+    }, 5000); // Poll every 5 seconds
+  }
+
+function chargeVehicle(event) {
+  event.preventDefault();
+  const vehicleId = document.getElementById("chargeVehicleIdInput").value;
+
+  fetch(`/operators/charge_vehicle/${vehicleId}/`, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrftoken,
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById("vehicleDetails").innerHTML = `<p>${data.message}</p>`;
+    
+    // Start monitoring battery charging status
+    monitorCharging(vehicleId);
+  })
+  .catch(error => console.error("Error initiating charging:", error));
+}
+
+function updateVehicleStatusToAvailable(vehicleId) {
+  fetch(`/operators/update_vehicle_status/${vehicleId}/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrftoken
+    },
+    body: JSON.stringify({ status: 'available' })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log(`Database status updated: ${data.message}`);
+  })
+  .catch(error => console.error('Error updating vehicle status in DB:', error));
+}
+
+function repairVehicle(event) {
+  event.preventDefault();
+  const vehicleId = document.getElementById('repairVehicleIdInput').value;
+
+  fetch(`/operators/repair_vehicle/${vehicleId}/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrftoken,  // Use the predefined csrftoken
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    document.getElementById('vehicleDetails').innerHTML = `<p>${data.message}</p>`;
+
+    // Start monitoring the repair status (optional, if you have a monitoring function)
+    monitorRepair(vehicleId);  // Call monitorRepair if you have it to track the repair status
+  })
+  .catch(error => {
+    console.error("Error initiating repair:", error);
+    document.getElementById('vehicleDetails').innerHTML = `<p>Error: ${error.message}</p>`;
+  });
+}
+
+function monitorRepair(vehicleId) {
+  const interval = setInterval(() => {
+    fetch(`/operators/api/vehicle/${vehicleId}/status/`)
+      .then(response => response.json())
+      .then(data => {
+        const status = data.status; wtf
+
+        // Update the relevant row in the vehicle list if it's displayed on the page
+        const vehicleRow = document.querySelector(`#vehicle-${vehicleId}`);
+        if (vehicleRow) {
+          vehicleRow.querySelector('.status').innerText = status;
+        }
+
+        // Stop polling once the status is "available" (repair completed)
+        if (status === 'available') {
+          clearInterval(interval);  // Stop polling once repair is complete
+          console.log(`Repair complete for Vehicle ID: ${vehicleId}`);
+        }
+      })
+      .catch(error => console.error("Error fetching repair status:", error));
+  }, 5000);  // Poll every 5 seconds
+}
+
+  function moveVehicle(event) {
+    event.preventDefault();
+    const vehicleId = document.getElementById('moveVehicleIdInput').value;
+    const stationSelect = document.getElementById('stationSelect');
+    const selectedStation = stationSelect.options[stationSelect.selectedIndex].value;
+
+    fetch(`/operators/move_vehicle/${vehicleId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrftoken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ station: selectedStation })
+    })
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('vehicleDetails').innerHTML = `<p>${data.message}</p>`;
+    })
+    .catch(error => {
+      document.getElementById('vehicleDetails').innerHTML = `<p>Error: ${error.message}</p>`;
+    });
+  }
+
+  function loadVehicleData() {
+    fetch('/operators/get_vehicles/')
+      .then(response => response.json())
+      .then(data => {
+        const vehicleList = document.getElementById('vehicleList');
+        vehicleList.innerHTML = ''; // Clear the list before appending new items
+  
+        let allCharged = true;
+  
+        data.forEach((vehicle, index) => {
+          vehicleList.innerHTML += `
+            <tr id="vehicle-${vehicle.vehicle_id}">
+              <td>${index + 1}</td>
+              <td>${vehicle.vehicle_id}</td>
+              <td class="battery-level">${vehicle.battery_level}%</td>
+              <td class="status">${vehicle.status}</td>
+              <td>${vehicle.in_station ? 'Yes' : 'No'} ${vehicle.station_name ? `(${vehicle.station_name})` : ''}</td>
+            </tr>
+          `;
+          
+          if (vehicle.battery_level < 100) {
+            allCharged = false;
+          }
+        });
+  
+        if (allCharged) {
+          clearInterval(autoRefreshInterval);
+          console.log("All vehicles are fully charged. Stopping auto-refresh.");
+        }
+      })
+      .catch(error => console.error('Error fetching vehicle data:', error));
+  }
+  
+  const autoRefreshInterval = setInterval(loadVehicleData, 5000);
+  
+  document.addEventListener('DOMContentLoaded', loadVehicleData);
+
+  function logout() {
+    fetch('/logout/', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrftoken
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        window.location.href = '/login/';
+      }
+    })
+    .catch(error => console.error('Error logging out:', error));
+  }
+
+</script>
+</body>
+</html>

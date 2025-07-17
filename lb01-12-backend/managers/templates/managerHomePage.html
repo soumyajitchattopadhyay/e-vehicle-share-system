@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); }
+        .chart-container { position: relative; width: 100%; height: 300px; }
+    </style>
+</head>
+<body>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="{% url 'managers:manager_home' %}">
+            <img src="{% static 'loginpage/img/ElVi_logo.webp' %}" alt="ELVe Logo" width="5%" height="5% ">
+            Welcome, {{ full_name }}
+          </a>
+
+        {% if user.is_authenticated %}
+        <form class="d-flex ms-auto">
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger">Logout</a>
+        </form>
+        {% endif %}
+    </nav>
+
+    <div class="container my-5">
+        <h1 class="text-center mb-4">Manager Dashboard</h1>
+
+        <script type="text/javascript">
+            const usageData = JSON.parse('{{ usage_data|safe }}');
+            const label = JSON.parse('{{ label|safe }}');
+            const time_counts = JSON.parse('{{ time_counts|safe }}');
+            const time_labels = JSON.parse('{{ time_labels|safe }}');
+            const vehicle_ids = JSON.parse('{{ vehicle_ids|safe }}');
+            const fixes_counts = JSON.parse('{{ fixes_counts|safe }}');
+            const groups = JSON.parse('{{ groups|safe }}');
+            const counts = JSON.parse('{{ counts|safe }}');
+        </script>
+
+        <div class="row g-4">
+            <!--Revenue generated Chart -->
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h5>Revenue generated</h5>
+                    <div class="chart-container">
+                        <canvas id="revenueGenChart"></canvas>
+                    </div>
+                    <a href="{% url 'managers:revenue_gen' %}" class="stretched-link text-decoration-none text-primary">View Details</a>
+                </div>
+            </div>
+
+            <!-- Peak usage time Chart -->
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h5>Peak usage time</h5>
+                    <div class="chart-container">
+                        <canvas id="peakUsageTimeChart"></canvas>
+                    </div>
+                    <a href="{% url 'managers:hour_of_usage' %}" class="stretched-link text-decoration-none text-primary">View Details</a>
+                </div>
+            </div>
+
+            <!-- Age Group Chart -->
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h5>Age Group</h5>
+                    <div class="chart-container">
+                        <canvas id="ageGroupChart"></canvas>
+                    </div>
+                    <a href="{% url 'managers:age_group' %}" class="stretched-link text-decoration-none text-primary">View Details</a>
+                </div>
+            </div>
+
+            <!-- vehicles fixed most Chart -->
+            <div class="col-md-6">
+                <div class="card p-3">
+                    <h5>Vehicles most fixed</h5>
+                    <div class="chart-container">
+                        <canvas id="vehiclesMostFixed"></canvas>
+                    </div>
+                    <a href="{% url 'managers:vehicles_fixed_most' %}" class="stretched-link text-decoration-none text-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consolidated Chart.js setup for each chart -->
+    <script>
+        // Initialize each chart with dynamic data from usageData
+
+        // revenueGenChart Chart
+        new Chart(document.getElementById('revenueGenChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: label,
+                datasets: [{ 
+                    label: 'Revenue Generated for this year', 
+                    data: usageData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true,
+                scales: {
+                    y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Pound ->'
+                    }
+                    },
+                    x: {
+                    title: {
+                        display: true,
+                        text: 'Months ->'
+                    }
+                    }
+                }
+                }
+        });
+
+        // Age Group Chart
+        new Chart(document.getElementById('ageGroupChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: groups,
+                datasets: [{ 
+                    label: 'Customers from different age groups', 
+                    data: counts,
+                    backgroundColor: 'rgba(57, 62, 135, 0.5)',
+                    borderColor: 'rgba(57, 62, 135, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true }
+        });
+
+        // Peak usage time Chart
+        new Chart(document.getElementById('peakUsageTimeChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: time_labels, 
+                datasets: [{ 
+                    label: time_labels, 
+                    data: time_counts,
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56','#5fe137']
+                }]
+            },
+            options: { responsive: true,
+                plugins: {
+                datalabels: {
+                    display: true,
+                    color: '#000',
+                    align: 'end',
+                    anchor: 'end',
+                    backgroundColor: '#ccc',
+                    borderRadius: 3,
+                    font: {
+                        weight: 'bold'
+                    },
+                    formatter: (value) => value + '%',  // Display percentage or other text
+                }
+            }
+             },
+        });
+
+        // Vehicals fixed 
+        new Chart(document.getElementById('vehiclesMostFixed').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: vehicle_ids,
+                datasets: [{ 
+                    label: 'number of times the vehicle got fixed', 
+                    data:  fixes_counts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Fixes'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Vehicle ID'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

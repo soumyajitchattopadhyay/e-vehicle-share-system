@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Vehicle</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% load static %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .header-title img {
+            height: 40px;
+        }
+        .vehicle-option {
+            border: 2px solid #ddd;
+            padding: 30px;
+            text-align: center;
+            border-radius: 15px;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+            position: relative;
+        }
+        .vehicle-option:hover {
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+        }
+        .vehicle-icon {
+            font-size: 60px;
+        }
+        .sub-options {
+            display: none;
+            margin-top: 10px;
+        }
+        .vehicle-option:hover .sub-options {
+            display: block;
+        }
+        .sub-option {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.2s;
+            margin-top: 5px;
+        }
+        .sub-option:hover {
+            background-color: #e2e6ea;
+        }
+        .sub-option a {
+            text-decoration: none;
+            color: #007bff;
+        }
+        .sub-option a:hover {
+            color: #0056b3;
+        }
+        .logout-btn {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #dc3545;
+            text-decoration: none;
+        }
+        .logout-btn:hover {
+            color: #ff0000;
+            text-decoration: underline;
+        }
+        .current-balance {
+            border: 2px solid #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 15px;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <!-- Logo and Title -->
+        <div class="header-title">
+            <div class="d-flex align-items-center gap-2">
+                <img src="{% static 'loginpage/img/ElVi_logo.webp' %}" alt="ELVe Logo">
+                <h2>ELVe: <span style="color: #28a745;">Combustion free travelling</span></h2>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+        </div>
+        
+        <!-- Vehicle options -->
+        <div class="row justify-content-center mt-5">
+            <!-- Cycle Option with Hover Display for Individual Vehicles -->
+            <div class="col-md-3 vehicle-option">
+                <div class="vehicle-icon">🚲</div>
+                <p>Cycle</p>
+                <!-- Sub-options for cycles, visible on hover -->
+                <div class="sub-options">
+                    <div class="sub-option">
+                        <a href="{% url 'location' %}?vehicle=cycle1">Cycle 1</a>
+                    </div>
+                    <div class="sub-option">
+                        <a href="{% url 'location' %}?vehicle=cycle2">Cycle 2</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scooter Option with Hover Display for Individual Vehicles -->
+            <div class="col-md-3 vehicle-option">
+                <div class="vehicle-icon">🛵</div>
+                <p>Scooter</p>
+                <!-- Sub-options for scooters, visible on hover -->
+                <div class="sub-options">
+                    <div class="sub-option">
+                        <a href="{% url 'location' %}?vehicle=scooter1">Scooter 1</a>
+                    </div>
+                    <div class="sub-option">
+                        <a href="{% url 'location' %}?vehicle=scooter2">Scooter 2</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Balance section -->
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-3 current-balance">
+                <p>Current Balance</p>
+                <h3 id="balanceAmount">{{ request.user.users.balance }} 50 GBP</h3>
+                <a href="{% url 'payment_option' %}" class="text-primary">Add money?</a>
+            </div>
+        </div>
+
+        <!-- Bottom button and info -->
+        <div class="mt-5">
+            <button class="btn btn-outline-secondary">Rate information of above vehicles</button>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        
+        document.addEventListener("DOMContentLoaded", function () {
+          const balanceAmountElement = document.getElementById("balanceAmount");
+          const storedBalance = localStorage.getItem("userBalance");
+      
+          if (storedBalance) {
+            balanceAmountElement.innerText = `${storedBalance} GBP`;
+          } else {
+            balanceAmountElement.innerText = "50 GBP"; 
+            localStorage.setItem("userBalance", "50"); 
+          }
+        });
+      </script>
+</body>
+</html>
